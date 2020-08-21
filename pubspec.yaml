@@ -1,0 +1,32 @@
+name: audiofx
+description: An app to control DiracSound and MiSound AudioFX
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+version: 2.0.0+5
+
+environment:
+  sdk: ">=2.7.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^0.1.3
+  provider: any
+  flutter_xlider: any
+  url_launcher: any
+  effectsplugin:
+    git:
+      url: https://github.com/AgentFabulous/android_flutter_equalizer
+  spicy_components:
+    git:
+      url: https://github.com/HrX03/SpicyUIComponents
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  fonts:
+   - family:  POSPIcon
+     fonts:
+      - asset: fonts/icons.ttf
