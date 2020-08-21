@@ -115,6 +115,18 @@ class AudioFxContents extends StatelessWidget {
     return Stack(
       children: <Widget>[
         AnimatedOpacity(
+          opacity: !provider.loaded ? 1.0 : 0.0,
+          duration: Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          child: Center(
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                provider.profileColor ?? Theme.of(context).accentColor,
+              ),
+            ),
+          ),
+        ),
+        AnimatedOpacity(
           opacity: (provider.loaded && !provider.audioFxSupported) ? 1.0 : 0.0,
           duration: Duration(seconds: 1),
           curve: Curves.easeInOut,

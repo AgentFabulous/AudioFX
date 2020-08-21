@@ -76,7 +76,7 @@ packages:
     description:
       path: "."
       ref: HEAD
-      resolved-ref: "44817459bfa06b91ce72bb2363d3b13c8bca9e75"
+      resolved-ref: "5d5a29e93b17a674032d4b4d58cfbfab09adea1a"
       url: "https://github.com/AgentFabulous/android_flutter_equalizer"
     source: git
     version: "0.0.1"
