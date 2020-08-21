@@ -27,6 +27,17 @@ class AudioFxProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _loaded = false;
+
+  bool get loaded => _loaded;
+
+  set loaded(bool loaded) {
+    _loaded = loaded;
+    notifyListeners();
+  }
+
+  bool get audioFxSupported => audioFxType != EFFECT_TYPE.NONE;
+
   final eqProfiles = {
     '0,0,0,0,0,0,0': {
       'name': "Default",
@@ -179,7 +190,10 @@ class AudioFxProvider extends ChangeNotifier {
       audioFxType = EFFECT_TYPE.MI;
       currentEffect = FX.mMi;
     }
-    if (currentEffect == null) return;
+    if (currentEffect == null) {
+      loaded = true;
+      return;
+    }
     for (int i = 0; i < await currentEffect.getNumBands(); i++)
       bands[i] = await currentEffect.getLevel(i);
 
@@ -187,6 +201,7 @@ class AudioFxProvider extends ChangeNotifier {
     final newHeadset = await currentEffect.getHeadsetType();
     _headset =
     newHeadset >= headphones.length ? headphones.length - 1 : newHeadset;
+    _loaded = true;
     notifyListeners();
   }
 }

@@ -6,6 +6,7 @@ import 'package:audiofx/ui/posp_icons.dart';
 import 'package:audiofx/ui/settings_dropdown.dart';
 import 'package:audiofx/ui/settings_switch.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_xlider/flutter_xlider.dart';
 import 'package:provider/provider.dart';
 import 'package:spicy_components/spicy_components.dart';
@@ -18,6 +19,10 @@ void main() {
 class AudioFxApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     final r = Random();
     final color = HSLColor.fromAHSL(
       1.0,
@@ -26,6 +31,7 @@ class AudioFxApp extends StatelessWidget {
       0.5,
     );
     return MaterialApp(
+      title: 'AudioFX',
       builder: (context, child) => ScrollConfiguration(
         behavior: NoGlowScrollBehavior(),
         child: child,
@@ -105,136 +111,166 @@ class AudioFx extends StatelessWidget {
 class AudioFxContents extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        top: MediaQuery.of(context).padding.top,
-        left: 16,
-        right: 16,
-        bottom: 8,
-      ),
-      child: Builder(
-        builder: (context) {
-          final provider = Provider.of<AudioFxProvider>(context);
-
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Expanded(
-                flex: 1,
-                child: Builder(
-                  builder: (context) {
-                    List<Point> data = [];
-                    for (int i = 0; i < provider.bands.length; i++) {
-                      data.add(Point(i, provider.bands[i] ?? 0));
-                    }
-                    return AbsorbPointer(
+    final provider = Provider.of<AudioFxProvider>(context);
+    return Stack(
+      children: <Widget>[
+        AnimatedOpacity(
+          opacity: (provider.loaded && !provider.audioFxSupported) ? 1.0 : 0.0,
+          duration: Duration(seconds: 1),
+          curve: Curves.easeInOut,
+          child: Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                Icon(
+                  Icons.warning,
+                  color: Colors.red,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'Unsupported!',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ],
+            ),
+          ),
+        ),
+        AbsorbPointer(
+          absorbing: !(provider.loaded && provider.audioFxSupported),
+          child: AnimatedOpacity(
+            opacity: (provider.loaded && provider.audioFxSupported) ? 1.0 : 0.0,
+            duration: Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top,
+                left: 16,
+                right: 16,
+                bottom: 8,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Expanded(
+                    flex: 1,
+                    child: Builder(
+                      builder: (context) {
+                        List<Point> data = [];
+                        for (int i = 0; i < provider.bands.length; i++) {
+                          data.add(Point(i, provider.bands[i] ?? 0));
+                        }
+                        return AbsorbPointer(
+                          absorbing: !provider.enabled,
+                          child: AnimatedOpacity(
+                            opacity: provider.enabled ? 1.0 : 0.3,
+                            duration: Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            child: CoolGraphCard(
+                              data: data,
+                              min: -10,
+                              max: 10,
+                              color: provider.profileColor ??
+                                  Theme.of(context).accentColor,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Card(
+                      color: provider.enabled
+                          ? (provider.profileColor ??
+                              Theme.of(context).accentColor)
+                          : HSLColor.fromColor(Color(0xffffffff))
+                              .withLightness(0.3)
+                              .toColor(),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(16.0)),
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0,
+                          vertical: 4.0,
+                        ),
+                        child: Row(
+                          children: <Widget>[
+                            Text(
+                              provider.enabled ? 'On' : 'Off',
+                              style: TextStyle(color: Colors.white),
+                            ),
+                            Spacer(),
+                            SettingsSwitch(
+                              setValue: (v) => provider.enabled = v,
+                              value: provider.enabled,
+                              activeColor: Colors.white,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  AbsorbPointer(
+                    absorbing: !provider.enabled,
+                    child: AnimatedOpacity(
+                      opacity: provider.enabled ? 1.0 : 0.3,
+                      duration: Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: SettingsDropdownTile(
+                        title: 'Audio Preset',
+                        values: provider.profileMap,
+                        getValue: () => provider.profile,
+                        setValue: (v) => provider.setProfile(v),
+                        selectedColor: provider.profileColor ??
+                            Theme.of(context).accentColor,
+                        icon: Icon(Icons.equalizer),
+                      ),
+                    ),
+                  ),
+                  AbsorbPointer(
+                    absorbing: !provider.enabled,
+                    child: AnimatedOpacity(
+                      opacity: provider.enabled ? 1.0 : 0.3,
+                      duration: Duration(milliseconds: 300),
+                      curve: Curves.easeInOut,
+                      child: SettingsDropdownTile(
+                        title: 'Headset Profile',
+                        values: Map.fromIterable(
+                          provider.headphones,
+                          key: (v) => v,
+                          value: (v) => v,
+                        ),
+                        getValue: () =>
+                            (provider.headphones[provider.headset] ??
+                                'Default Mode'),
+                        setValue: (v) => provider.headset =
+                            (provider.headphones.indexOf(v) ?? 0),
+                        selectedColor: provider.profileColor ??
+                            Theme.of(context).accentColor,
+                        icon: Icon(Icons.headset),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    flex: 3,
+                    child: AbsorbPointer(
                       absorbing: !provider.enabled,
                       child: AnimatedOpacity(
                         opacity: provider.enabled ? 1.0 : 0.3,
                         duration: Duration(milliseconds: 300),
                         curve: Curves.easeInOut,
-                        child: CoolGraphCard(
-                          data: data,
-                          min: -10,
-                          max: 10,
-                          color: provider.profileColor ??
-                              Theme.of(context).accentColor,
-                        ),
+                        child: AudioFxSliders(),
                       ),
-                    );
-                  },
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Card(
-                  color: provider.enabled
-                      ? (provider.profileColor ?? Theme.of(context).accentColor)
-                      : HSLColor.fromColor(Color(0xffffffff))
-                          .withLightness(0.3)
-                          .toColor(),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(16.0)),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 4.0,
-                    ),
-                    child: Row(
-                      children: <Widget>[
-                        Text(
-                          provider.enabled ? 'On' : 'Off',
-                          style: TextStyle(color: Colors.white),
-                        ),
-                        Spacer(),
-                        SettingsSwitch(
-                          setValue: (v) => provider.enabled = v,
-                          value: provider.enabled,
-                          activeColor: Colors.white,
-                        ),
-                      ],
                     ),
                   ),
-                ),
+                  SizedBox(height: 24),
+                ],
               ),
-              AbsorbPointer(
-                absorbing: !provider.enabled,
-                child: AnimatedOpacity(
-                  opacity: provider.enabled ? 1.0 : 0.3,
-                  duration: Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: SettingsDropdownTile(
-                    title: 'Audio Preset',
-                    values: provider.profileMap,
-                    getValue: () => provider.profile,
-                    setValue: (v) => provider.setProfile(v),
-                    selectedColor:
-                        provider.profileColor ?? Theme.of(context).accentColor,
-                    icon: Icon(Icons.equalizer),
-                  ),
-                ),
-              ),
-              AbsorbPointer(
-                absorbing: !provider.enabled,
-                child: AnimatedOpacity(
-                  opacity: provider.enabled ? 1.0 : 0.3,
-                  duration: Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: SettingsDropdownTile(
-                    title: 'Headset Profile',
-                    values: Map.fromIterable(
-                      provider.headphones,
-                      key: (v) => v,
-                      value: (v) => v,
-                    ),
-                    getValue: () => (provider.headphones[provider.headset] ??
-                        'Default Mode'),
-                    setValue: (v) => provider.headset =
-                        (provider.headphones.indexOf(v) ?? 0),
-                    selectedColor:
-                        provider.profileColor ?? Theme.of(context).accentColor,
-                    icon: Icon(Icons.headset),
-                  ),
-                ),
-              ),
-              Expanded(
-                flex: 3,
-                child: AbsorbPointer(
-                  absorbing: !provider.enabled,
-                  child: AnimatedOpacity(
-                    opacity: provider.enabled ? 1.0 : 0.3,
-                    duration: Duration(milliseconds: 300),
-                    curve: Curves.easeInOut,
-                    child: AudioFxSliders(),
-                  ),
-                ),
-              ),
-              SizedBox(height: 24),
-            ],
-          );
-        },
-      ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
